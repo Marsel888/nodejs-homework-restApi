@@ -1,24 +1,17 @@
 const express = require('express')
 const Joi = require('joi')
 const router = express.Router()
-const {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-} = require('../../models/contacts')
 
+const { Contact } = require('../../model/models')
 // *! Получаем все контакты
 router.get('/', async (req, res, next) => {
-  const list = await listContacts()
+  const list = await Contact.find({})
 
   res.status(200).send(list)
 })
 // *!  Ищем контакт по ид
 router.get('/:contactId', async (req, res, next) => {
-  const getById = await getContactById(req.params.contactId)
-
+  const getById = await Contact.findById(req.params.contactId)
   // *! Если нет ИД пишем ошибку
   if (!getById) {
     res.status(404).send({ message: 'Not found' })
@@ -29,14 +22,25 @@ router.get('/:contactId', async (req, res, next) => {
 
 // *! Добавляем новый контакт
 router.post('/', async (req, res, next) => {
-  const newContact = await addContact(req.body)
+  try {
+    const { error } = Contact.validate(req.body)
 
-  Validation(req, res)
-  res.status(201).json(newContact)
+    if (error) {
+      res.status(400).json('error')
+      return
+    }
+
+    const newContact = await Contact.create(req.body)
+
+    Validation(req, res)
+    res.status(201).json(newContact)
+  } catch (error) {
+    res.status(400).json('message Error')
+  }
 })
 // *!  Удаляем контакт по ИД
 router.delete('/:contactId', async (req, res, next) => {
-  const deleteId = await removeContact(req.params.contactId)
+  const deleteId = await Contact.findByIdAndDelete(req.params.contactId)
 
   // *! Если нет ИД выдаём ошибку
   if (!deleteId) {
@@ -49,7 +53,8 @@ router.delete('/:contactId', async (req, res, next) => {
 
 // *!  Перезаписываем контакт по ИД
 router.put('/:contactId', async (req, res, next) => {
-  const update = await updateContact(req.params.contactId, req.body)
+  const update = await Contact.findByIdAndUpdate(req.params.contactId, req.body)
+
   const { name, email, phone } = req.body
 
   Validation(req, res)
@@ -66,8 +71,27 @@ router.put('/:contactId', async (req, res, next) => {
   res.status(200).send(update)
 })
 
+router.patch('/:contactId/favorite', async (req, res) => {
+  try {
+    const favorites = await Contact.findByIdAndUpdate(
+      req.params.contactId,
+      req.body,
+    )
+
+    if (Object.keys(req.body).length === 1) {
+      res.status(201).send(favorites)
+      return
+    }
+
+    res.status(400).json({ message: 'missing field favorite' })
+  } catch (e) {
+    res.status(404).json({ message: 'Not found' })
+  }
+})
+
 function Validation(req, res) {
   // *! Делаем валидацию на входящие данные
+
   const schema = Joi.object({
     name: Joi.string().min(3).max(30).required(),
     email: Joi.string().email({
@@ -75,6 +99,7 @@ function Validation(req, res) {
       tlds: { allow: ['com', 'net'] },
     }),
     phone: Joi.number().required(),
+    favorite: Joi.boolean(),
   })
 
   // *! Ловим ошибку
