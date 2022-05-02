@@ -23,7 +23,7 @@ router.get('/:contactId', async (req, res, next) => {
 // *! Добавляем новый контакт
 router.post('/', async (req, res, next) => {
   try {
-    const { error } = Contact.validate(req.body)
+    const { error } = await Contact.validate(req.body)
 
     if (error) {
       res.status(400).json('error')
@@ -34,7 +34,7 @@ router.post('/', async (req, res, next) => {
 
     Validation(req, res)
     res.status(201).json(newContact)
-  } catch (error) {
+  } catch (e) {
     res.status(400).json('message Error')
   }
 })
@@ -72,6 +72,7 @@ router.put('/:contactId', async (req, res, next) => {
 })
 
 router.patch('/:contactId/favorite', async (req, res) => {
+  ValidationFavorite(req, res)
   try {
     const favorites = await Contact.findByIdAndUpdate(
       req.params.contactId,
@@ -109,4 +110,18 @@ function Validation(req, res) {
     return res.status(400).json({ message: validatError.error })
   }
 }
+
+function ValidationFavorite(req, res) {
+  const schema = Joi.object({
+    favorite: Joi.boolean(),
+  })
+
+  // *! Ловим ошибку
+  const validatError = schema.validate(req.body)
+
+  if (validatError.error) {
+    return res.status(400).json({ message: validatError.error })
+  }
+}
+
 module.exports = router
