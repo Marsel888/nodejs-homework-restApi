@@ -1,17 +1,21 @@
 const express = require('express')
 const Joi = require('joi')
 const router = express.Router()
-
+const { auth } = require('../../midelware/auth')
 const { Contact } = require('../../model/models')
 // *! Получаем все контакты
-router.get('/', async (req, res, next) => {
-  const list = await Contact.find({})
+router.get('/', auth, async (req, res, next) => {
+  const { _id } = req.user
+
+  const list = await Contact.find({ owner: _id }).populate('owner')
 
   res.status(200).send(list)
 })
 // *!  Ищем контакт по ид
-router.get('/:contactId', async (req, res, next) => {
-  const getById = await Contact.findById(req.params.contactId)
+router.get('/:contactId', auth, async (req, res, next) => {
+  const { _id } = req.user
+
+  const getById = await Contact.findOne({ _id: _id, owner: _id })
   // *! Если нет ИД пишем ошибку
   if (!getById) {
     res.status(404).send({ message: 'Not found' })
@@ -21,21 +25,17 @@ router.get('/:contactId', async (req, res, next) => {
 })
 
 // *! Добавляем новый контакт
-router.post('/', async (req, res, next) => {
+router.post('/', auth, async (req, res, next) => {
+  const { _id } = req.user
   try {
-    const { error } = await Contact.validate(req.body)
+    Validation(req, res)
 
-    if (error) {
-      res.status(400).json('error')
-      return
-    }
-
-    const newContact = await Contact.create(req.body)
+    const newContact = await Contact.create({ ...req.body, owner: _id })
 
     Validation(req, res)
     res.status(201).json(newContact)
   } catch (e) {
-    res.status(400).json('message Error')
+    next(e)
   }
 })
 // *!  Удаляем контакт по ИД

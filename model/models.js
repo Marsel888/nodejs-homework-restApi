@@ -16,7 +16,12 @@ const contact = Schema({
     type: Boolean,
     default: false,
   },
+  owner: {
+    type: Schema.Types.ObjectId,
+    ref: 'register',
+  },
 })
+
 const Contact = model('contacts', contact)
 
 module.exports = {
