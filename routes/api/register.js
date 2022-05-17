@@ -4,6 +4,7 @@ const { auth } = require('../../midelware/auth')
 const jwt = require('jsonwebtoken')
 const router = express.Router()
 const { Register, JoiSchema } = require('../../model/user')
+const gravatar = require('gravatar')
 
 router.post('/register', async (req, res, next) => {
   const { email, password } = req.body
@@ -26,8 +27,9 @@ router.post('/register', async (req, res, next) => {
         },
       })
     }
+    const avatarURL = gravatar.url(email)
     const pass = await bcrypt.hash(password, 10)
-    await Register.create({ email, password: pass })
+    await Register.create({ email, password: pass, avatarURL })
     res.status(201).json({
       users: {
         email,
@@ -38,7 +40,7 @@ router.post('/register', async (req, res, next) => {
   }
 })
 
-router.post('/login', auth, async (req, res, next) => {
+router.post('/login', auth, async (req, res, nex) => {
   try {
     const { error } = JoiSchema.validate(req.body)
 
@@ -108,11 +110,6 @@ router.get('/curent', auth, async (req, res, next) => {
       email,
     },
   })
-  // const { email } = req.user
-  // if (!email) {
-  //   res.status(401).json('"message": "Not authorized"')
-  // }
-  // res.status(200).json({ email })
 })
 
 router.get('/logout', auth, async (req, res, next) => {
@@ -124,4 +121,5 @@ router.get('/logout', auth, async (req, res, next) => {
     next(error)
   }
 })
+
 module.exports = router
