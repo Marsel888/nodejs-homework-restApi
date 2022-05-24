@@ -1,3 +1,4 @@
+const { boolean } = require('joi')
 const Joi = require('joi')
 const { Schema, model } = require('mongoose')
 const register = Schema({
@@ -20,6 +21,17 @@ const register = Schema({
     default: null,
   },
   avatarURL: String,
+  verify: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: {
+    type: String,
+    required: [true, 'Verify token is required'],
+  },
+})
+const Verify = Joi.object({
+  email: Joi.string().required(),
 })
 
 const JoiSchema = Joi.object({
@@ -35,4 +47,5 @@ const Register = model('register', register)
 module.exports = {
   Register,
   JoiSchema,
+  Verify,
 }
